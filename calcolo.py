@@ -38,7 +38,7 @@ def main():
         st.dataframe(riepilogo)
 
         # Opzione per scaricare il riepilogo
-        excel = riepilogo.to_excel(index=False)
+        excel = riepilogo.to_excel('riepilogo_ore_straordinarie.xslx', index=False)
         st.download_button(label="Scarica Riepilogo", data=excel, file_name='riepilogo_ore_straordinarie.xslx', mime='xlsx')
 
 if __name__ == "__main__":
