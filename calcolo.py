@@ -39,7 +39,7 @@ def main():
 
         # Opzione per scaricare il riepilogo
         csv = riepilogo.to_csv(index=False).encode('utf-8')
-        st.download_button(label="Scarica Riepilogo", data=csv, file_name='riepilogo_ore_straordinarie.csv', mime='text/csv')
+        st.download_button(label="Scarica Riepilogo", data=csv, file_name='riepilogo_ore_straordinarie.csv', mime='xlsx')
 
 if __name__ == "__main__":
     main()
