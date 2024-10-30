@@ -1,11 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
+pip install openpyxl
 
 import pandas as pd
 import streamlit as st
+
 
 def main():
     st.title("Analisi Ore Straordinarie")
