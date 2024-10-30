@@ -38,8 +38,8 @@ def main():
         st.dataframe(riepilogo)
 
         # Opzione per scaricare il riepilogo
-        csv = riepilogo.to_csv(index=False).encode('utf-8')
-        st.download_button(label="Scarica Riepilogo", data=csv, file_name='riepilogo_ore_straordinarie.csv', mime='xlsx')
+        excel = riepilogo.to_excel(index=False).encode('utf-8')
+        st.download_button(label="Scarica Riepilogo", data=excel, file_name='riepilogo_ore_straordinarie.xslx', mime='xlsx')
 
 if __name__ == "__main__":
     main()
