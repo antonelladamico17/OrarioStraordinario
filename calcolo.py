@@ -1,7 +1,6 @@
-import openpyxl
 import pandas as pd
 import streamlit as st
-
+from io import BytesIO
 
 def main():
     st.title("Analisi Ore Straordinarie")
@@ -37,10 +36,17 @@ def main():
         st.write("Riepilogo delle Ore Straordinarie:")
         st.dataframe(riepilogo)
 
-        # Opzione per scaricare il riepilogo
-        excel = riepilogo.to_excel('riepilogo_ore_straordinarie.xslx', index=False)
-        st.download_button(label="Scarica Riepilogo", data=excel, file_name='riepilogo_ore_straordinarie.xslx', mime='xlsx')
+        # Opzione per scaricare il riepilogo in formato Excel
+        excel_file = create_excel_file(riepilogo)
+        st.download_button(label="Scarica Riepilogo", data=excel_file, file_name='riepilogo_ore_straordinarie.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+def create_excel_file(df):
+    # Crea un file Excel in memoria
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Riepilogo')
+    output.seek(0)
+    return output.read()
 
 if __name__ == "__main__":
     main()
-
