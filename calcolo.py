@@ -26,7 +26,8 @@ def main():
         # Calcolo delle ore straordinarie
         orario_lavorativo_standard = pd.to_timedelta('07:12:00')
         df['Differenza'] = df['Uscita'] - df['Entrata']
-        df['Ore_straordinarie'] = df['Differenza'].where(df['Differenza'] > orario_lavorativo_standard, pd.Timedelta(0)) - orario_lavorativo_standard
+        df['Ore_straordinarie'] = df['Differenza'].where(df['Differenza'] > orario_lavorativo_standard, pd.Timedelta(0))
+        df['Ore_straordinarie'] = df['Ore_straordinarie'] - orario_lavorativo_standard
         df['Ore_straordinarie'] = df['Ore_straordinarie'].where(df['Ore_straordinarie'] > pd.Timedelta(0), pd.Timedelta(0))
 
         # Formattazione delle ore straordinarie come stringhe
@@ -44,9 +45,6 @@ def main():
         st.download_button(label="Scarica Riepilogo", data=excel_file, file_name='riepilogo_ore_straordinarie.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 def format_timedelta(td):
-    if td == pd.Timedelta(0):
-        return "0:00:00"
-    
     total_seconds = int(td.total_seconds())
     days, remainder = divmod(total_seconds, 86400)  # 86400 secondi in un giorno
     hours, remainder = divmod(remainder, 3600)
