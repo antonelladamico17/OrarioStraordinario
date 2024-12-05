@@ -79,7 +79,7 @@ def main():
             else:
                 return row['Ore_recupero'] - row['Ore_straordinarie']
 
-        # Calcolo della colonna Ore_finali
+# Calcolo della colonna Ore_finali
         riepilogo['Ore_finali'] = riepilogo.apply(calcola_ore_finali, axis=1)
 
 # Raggruppa per Mese_Anno e somma le colonne
@@ -89,6 +89,7 @@ def main():
         riepilogo['Ore_straordinarie'] = riepilogo['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1])
         riepilogo['Ore_recupero'] = riepilogo['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1])
         riepilogo['Ore_finali'] = riepilogo['Ore_finali'].apply(lambda x: str(x).split(' ')[-1])
+
         
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
