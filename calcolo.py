@@ -42,10 +42,10 @@ def main():
         # Calcolare straordinari e recupero
         def calcola_ore(row):
             differenza = row['Ore totali'] - orario_lavorativo_standard
-                if differenza >= pd.Timedelta(0):  # Se positivo, è straordinario
-                    return differenza, pd.Timedelta(0)
-                else:  # Se negativo, calcolare il recupero
-                    return pd.Timedelta(0), orario_lavorativo_standard - row['Ore totali']
+            if differenza >= pd.Timedelta(0):  # Se positivo, è straordinario
+                return differenza, pd.Timedelta(0)
+            else:  # Se negativo, calcolare il recupero
+                return pd.Timedelta(0), orario_lavorativo_standard - row['Ore totali']
 
         # Applicare la funzione riga per riga
         df_raggruppato[['Ore_straordinarie', 'Ore_recupero']] = df_raggruppato.apply(
