@@ -17,17 +17,15 @@ def main():
         df = df.iloc[1:]
         df.reset_index(drop=True, inplace=True)
 
-        # Crea le colonne Entrata e Uscita
-        df['Entrata'] = pd.to_datetime(df['Data'] + ' ' + df['Orario entrata'], format='%d/%m/%Y %H:%M:%S')
-        df['Uscita'] = pd.to_datetime(df['Data'] + ' ' + df['Orario uscita'], format='%d/%m/%Y %H:%M:%S')
+        # Conversione delle date e orari
+        df['Entrata'] = pd.to_datetime(df['Data'] + ' ' + df['Orario entrata'], format='%d/%m/%Y %H:%M:%S', errors='coerce')
+        df['Uscita'] = pd.to_datetime(df['Data'] + ' ' + df['Orario uscita'], format='%d/%m/%Y %H:%M:%S', errors='coerce')
 
-        # Calcolare la durata in secondi
+        # Calcolo della durata
         df['Durata'] = (df['Uscita'] - df['Entrata']).dt.total_seconds()  # Totale in secondi
-
-        # Impostare la durata a 0 se la causale è "Orario Ordinario"
         df.loc[df['Causale'] == 'Orario Ordinario', 'Durata'] = 0
 
-        # Estrarre solo il giorno per raggruppare
+        # Estrarre il giorno per il raggruppamento
         df['Giorno'] = df['Entrata'].dt.strftime('%d/%m/%Y')
 
         # Raggruppare per giorno e sommare i secondi
@@ -39,67 +37,46 @@ def main():
         # Convertire i secondi in timedelta
         df_raggruppato['Ore totali'] = pd.to_timedelta(df_raggruppato['Durata'], unit='s')
 
-        # Calcolare straordinari e recupero
+        # Calcolo straordinari e recupero
         def calcola_ore(row):
             differenza = row['Ore totali'] - orario_lavorativo_standard
-            if differenza >= pd.Timedelta(0):  # Se positivo, è straordinario
+            if differenza >= pd.Timedelta(0):  # Straordinari
                 return differenza, pd.Timedelta(0)
-            else:  # Se negativo, calcolare il recupero
-                return pd.Timedelta(0), orario_lavorativo_standard - row['Ore totali']
+            else:  # Recupero
+                return pd.Timedelta(0), abs(differenza)
 
-        # Applicare la funzione riga per riga
+        # Applicare la funzione calcola_ore
         df_raggruppato[['Ore_straordinarie', 'Ore_recupero']] = df_raggruppato.apply(
             lambda row: pd.Series(calcola_ore(row)), axis=1
         )
 
-        # Convertire i risultati in formato HH:MM:SS per leggibilità
-        df_raggruppato['Ore totali'] = df_raggruppato['Ore totali'].apply(lambda x: str(x).split(' ')[-1])
-        df_raggruppato['Ore_straordinarie'] = df_raggruppato['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1])
-        df_raggruppato['Ore_recupero'] = df_raggruppato['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1])
+        # Conversione delle ore in formato HH:MM:SS
+        for col in ['Ore totali', 'Ore_straordinarie', 'Ore_recupero']:
+            df_raggruppato[col] = df_raggruppato[col].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
 
-        # Convert 'Giorno' column to datetime
+        # Creare la colonna 'Mese_Anno' con il nome del mese in italiano
         df_raggruppato['Giorno'] = pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y')
-
-        # Mapping manuale dei mesi in italiano
         mesi_italiani = {
             1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
             7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
         }
+        df_raggruppato['Mese_Anno'] = df_raggruppato['Giorno'].dt.month.map(mesi_italiani) + ' ' + df_raggruppato['Giorno'].dt.year.astype(str)
 
-        # Creare la colonna 'Mese_Anno' con il nome del mese in italiano
-        df_raggruppato['Mese_Anno'] = pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y').dt.month
-        df_raggruppato['Mese_Anno'] = df_raggruppato['Mese_Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y').dt.year.astype(str)
+        # Calcolo riepilogo mensile
+        riepilogo = df_raggruppato.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero']].sum().reset_index()
 
-        # Rimuovi la colonna temporanea
-        riepilogo = df_raggruppato[['Mese_Anno', 'Ore_straordinarie', 'Ore_recupero']]
-
-        # Assicurati che le colonne Ore_straordinarie e Ore_recupero siano in formato timedelta
-        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'], errors='coerce')    
+        # Convertire le colonne in timedelta
+        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'], errors='coerce')
         riepilogo['Ore_recupero'] = pd.to_timedelta(riepilogo['Ore_recupero'], errors='coerce')
 
-        # Funzione per calcolare la differenza tra straordinari e recupero
-        def calcola_ore_finali(row):
-            if pd.isna(row['Ore_straordinarie']) or pd.isna(row['Ore_recupero']):
-                return pd.Timedelta(0)
-            if row['Ore_straordinarie'] > row['Ore_recupero']:
-                return row['Ore_straordinarie'] - row['Ore_recupero']
-            else:
-                return row['Ore_recupero'] - row['Ore_straordinarie']
+        # Calcolo Ore_finali
+        riepilogo['Ore_finali'] = riepilogo.apply(
+            lambda row: abs(row['Ore_straordinarie'] - row['Ore_recupero']), axis=1
+        )
 
-        # Calcolo della colonna Ore_finali
-        riepilogo['Ore_finali'] = riepilogo.apply(calcola_ore_finali, axis=1)
-
-        # Raggruppa per Mese_Anno e somma le colonne
-        riepilogo = riepilogo.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']].sum().reset_index()
-
-        # Converti le colonne in formato leggibile HH:MM:SS
-        riepilogo['Ore_straordinarie'] = riepilogo['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
-        riepilogo['Ore_recupero'] = riepilogo['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
-        riepilogo['Ore_finali'] = riepilogo['Ore_finali'].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
-
-        # Visualizza il risultato finale
-        display(riepilogo)
-
+        # Conversione per leggibilità
+        for col in ['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']:
+            riepilogo[col] = riepilogo[col].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
 
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
