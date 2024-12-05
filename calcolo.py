@@ -30,13 +30,22 @@ def main():
         df['Ore_straordinarie'] = df['Ore_straordinarie'] - orario_lavorativo_standard
         df['Ore_straordinarie'] = df['Ore_straordinarie'].where(df['Ore_straordinarie'] > pd.Timedelta(0), pd.Timedelta(0))
 
-        # Formattazione delle ore straordinarie come stringhe
-        df['Ore_straordinarie'] = df['Ore_straordinarie'].apply(format_timedelta)
-
-        # Creazione del riepilogo mensile
+        # Crea la colonna Mese_Anno per il riepilogo mensile
         df['Mese_Anno'] = df['Uscita'].dt.to_period('M')
-        riepilogo = df.groupby('Mese_Anno')['Ore_straordinarie'].first().reset_index()
 
+        # Conversione di Ore_straordinarie in secondi per il calcolo
+        df['Ore_straordinarie_secondi'] = df['Ore_straordinarie'].dt.total_seconds()
+
+        # Creazione del riepilogo mensile sommando le ore straordinarie
+        riepilogo = df.groupby('Mese_Anno')['Ore_straordinarie_secondi'].sum().reset_index()
+
+        # Converti i secondi totali in formato hh:mm:ss
+        riepilogo['Ore_straordinarie'] = riepilogo['Ore_straordinarie_secondi'].apply(lambda x: format_timedelta(pd.Timedelta(seconds=x)))
+
+        # Rimuovi la colonna temporanea
+        riepilogo = riepilogo[['Mese_Anno', 'Ore_straordinarie']]
+
+        # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
         st.dataframe(riepilogo)
 
