@@ -74,7 +74,7 @@ def main():
         riepilogo = df_raggruppato[['Mese_Anno', 'Ore_straordinarie', 'Ore_recupero']]
 
         # Assicurati che le colonne Ore_straordinarie e Ore_recupero siano in formato timedelta
-        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'], errors='coerce')
+        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'], errors='coerce')    
         riepilogo['Ore_recupero'] = pd.to_timedelta(riepilogo['Ore_recupero'], errors='coerce')
 
         # Funzione per calcolare la differenza tra straordinari e recupero
@@ -93,9 +93,13 @@ def main():
         riepilogo = riepilogo.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']].sum().reset_index()
 
         # Converti le colonne in formato leggibile HH:MM:SS
-        riepilogo['Ore_straordinarie'] = riepilogo['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1])
-        riepilogo['Ore_recupero'] = riepilogo['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1])
-        riepilogo['Ore_finali'] = riepilogo['Ore_finali'].apply(lambda x: str(x).split(' ')[-1])
+        riepilogo['Ore_straordinarie'] = riepilogo['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
+        riepilogo['Ore_recupero'] = riepilogo['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
+        riepilogo['Ore_finali'] = riepilogo['Ore_finali'].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
+
+        # Visualizza il risultato finale
+        display(riepilogo)
+
 
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
