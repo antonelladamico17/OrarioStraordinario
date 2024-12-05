@@ -49,67 +49,66 @@ def main():
 
         # Applicare la funzione riga per riga
         df_raggruppato[['Ore_straordinarie', 'Ore_recupero']] = df_raggruppato.apply(
-        lambda row: pd.Series(calcola_ore(row)), axis=1)
+            lambda row: pd.Series(calcola_ore(row)), axis=1
+        )
 
         # Convertire i risultati in formato HH:MM:SS per leggibilità
         df_raggruppato['Ore totali'] = df_raggruppato['Ore totali'].apply(lambda x: str(x).split(' ')[-1])
         df_raggruppato['Ore_straordinarie'] = df_raggruppato['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1])
         df_raggruppato['Ore_recupero'] = df_raggruppato['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1])
+
         # Convert 'Giorno' column to datetime
         df_raggruppato['Giorno'] = pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y')
 
         # Mapping manuale dei mesi in italiano
-        mesi_italiani = {1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno', 7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'}
+        mesi_italiani = {
+            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
+            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
+        }
 
         # Creare la colonna 'Mese_Anno' con il nome del mese in italiano
         df_raggruppato['Mese_Anno'] = pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y').dt.month
         df_raggruppato['Mese_Anno'] = df_raggruppato['Mese_Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y').dt.year.astype(str)
-        
+
         # Rimuovi la colonna temporanea
         riepilogo = df_raggruppato[['Mese_Anno', 'Ore_straordinarie', 'Ore_recupero']]
 
         # Assicurati che le colonne Ore_straordinarie e Ore_recupero siano in formato timedelta
-        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'])
-        riepilogo['Ore_recupero'] = pd.to_timedelta(riepilogo['Ore_recupero'])
+        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'], errors='coerce')
+        riepilogo['Ore_recupero'] = pd.to_timedelta(riepilogo['Ore_recupero'], errors='coerce')
 
         # Funzione per calcolare la differenza tra straordinari e recupero
         def calcola_ore_finali(row):
+            if pd.isna(row['Ore_straordinarie']) or pd.isna(row['Ore_recupero']):
+                return pd.Timedelta(0)
             if row['Ore_straordinarie'] > row['Ore_recupero']:
                 return row['Ore_straordinarie'] - row['Ore_recupero']
             else:
                 return row['Ore_recupero'] - row['Ore_straordinarie']
 
-# Calcolo della colonna Ore_finali
+        # Calcolo della colonna Ore_finali
         riepilogo['Ore_finali'] = riepilogo.apply(calcola_ore_finali, axis=1)
 
-# Raggruppa per Mese_Anno e somma le colonne
+        # Raggruppa per Mese_Anno e somma le colonne
         riepilogo = riepilogo.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']].sum().reset_index()
 
-# Converti le colonne in formato leggibile HH:MM:SS
+        # Converti le colonne in formato leggibile HH:MM:SS
         riepilogo['Ore_straordinarie'] = riepilogo['Ore_straordinarie'].apply(lambda x: str(x).split(' ')[-1])
         riepilogo['Ore_recupero'] = riepilogo['Ore_recupero'].apply(lambda x: str(x).split(' ')[-1])
         riepilogo['Ore_finali'] = riepilogo['Ore_finali'].apply(lambda x: str(x).split(' ')[-1])
 
-        
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
         st.dataframe(riepilogo)
 
         # Opzione per scaricare il riepilogo in formato Excel
         excel_file = create_excel_file(riepilogo)
-        st.download_button(label="Scarica Riepilogo", data=excel_file, file_name='riepilogo_ore_straordinarie.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-#def format_timedelta(td):
- #   total_seconds = int(td.total_seconds())
- #   days, remainder = divmod(total_seconds, 86400)  # 86400 secondi in un giorno
- #   hours, remainder = divmod(remainder, 3600)
- #   minutes, seconds = divmod(remainder, 60)
-    
-    # Se i giorni sono maggiori di 0, aggiungi 24 alle ore
-    #if days > 0:
-    #    hours += days * 24
-    
-    #return f"{hours}:{minutes:02}:{seconds:02}"
+        st.download_button(
+            label="Scarica Riepilogo",
+            data=excel_file,
+            file_name='riepilogo_ore_straordinarie.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
 def create_excel_file(df):
     # Crea un file Excel in memoria
