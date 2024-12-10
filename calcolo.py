@@ -122,7 +122,7 @@ def main():
 
 
 # Applicare la funzione alla colonna 'Mese_Anno'
-        riepilogo['Anno_Mese'] = riepilogo['Mese_Anno'].apply(converti_mese_anno)
+        riepilogo['Anno_Mese'] = riepilogo['Mese Anno'].apply(converti_mese_anno)
 
 # Rimuovere righe con valori None (se ci sono problemi con il formato)
         riepilogo = riepilogo.dropna(subset=['Anno_Mese'])
