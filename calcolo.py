@@ -29,54 +29,69 @@ def main():
         df['Giorno'] = df['Entrata'].dt.strftime('%d/%m/%Y')
 
         # Raggruppare per giorno e sommare i secondi
-        df_raggruppato = df.groupby('Giorno')['Durata'].sum().reset_index()
+        df = df.groupby('Giorno')['Durata'].sum().reset_index()
 
         # Orario lavorativo standard
-        orario_lavorativo_standard = pd.to_timedelta('07:12:00')
-
-        # Convertire i secondi in timedelta
-        df_raggruppato['Ore totali'] = pd.to_timedelta(df_raggruppato['Durata'], unit='s')
+        orario_lavorativo_standard = pd.to_timedelta('07:12:00').total_seconds()
 
         # Calcolo straordinari e recupero
         def calcola_ore(row):
-            differenza = row['Ore totali'] - orario_lavorativo_standard
-            if differenza >= pd.Timedelta(0):  # Straordinari
-                return differenza, pd.Timedelta(0)
+            differenza = row['Durata'] - orario_lavorativo_standard
+            if differenza >= 0:  # Straordinari
+                return differenza, 0
             else:  # Recupero
-                return pd.Timedelta(0), abs(differenza)
+                return 0, orario_lavorativo_standard - row['Durata']
 
         # Applicare la funzione calcola_ore
-        df_raggruppato[['Ore_straordinarie', 'Ore_recupero']] = df_raggruppato.apply(
-            lambda row: pd.Series(calcola_ore(row)), axis=1
-        )
+        df[['Ore_straordinarie', 'Ore_recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)
 
-        # Conversione delle ore in formato HH:MM:SS
-        for col in ['Ore totali', 'Ore_straordinarie', 'Ore_recupero']:
-            df_raggruppato[col] = df_raggruppato[col].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
 
         # Creare la colonna 'Mese_Anno' con il nome del mese in italiano
-        df_raggruppato['Giorno'] = pd.to_datetime(df_raggruppato['Giorno'], format='%d/%m/%Y')
+        df['Giorno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y')
         mesi_italiani = {
             1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
             7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
         }
-        df_raggruppato['Mese_Anno'] = df_raggruppato['Giorno'].dt.month.map(mesi_italiani) + ' ' + df_raggruppato['Giorno'].dt.year.astype(str)
+        df['Mese_Anno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.month
+        df['Mese_Anno'] = df['Mese_Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.year.astype(str)
 
         # Calcolo riepilogo mensile
-        riepilogo = df_raggruppato.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero']].sum().reset_index()
+        df = df[['Mese_Anno', 'Ore_straordinarie', 'Ore_recupero']]
 
-        # Convertire le colonne in timedelta
-        riepilogo['Ore_straordinarie'] = pd.to_timedelta(riepilogo['Ore_straordinarie'], errors='coerce')
-        riepilogo['Ore_recupero'] = pd.to_timedelta(riepilogo['Ore_recupero'], errors='coerce')
+        
+        def calcola_ore_finali(row):
+          return row['Ore_straordinarie'] - row['Ore_recupero']
+        # Calcolo della colonna Ore_finali
+        df['Ore_finali'] = df.apply(calcola_ore_finali, axis=1)
 
-        # Calcolo Ore_finali
-        riepilogo['Ore_finali'] = riepilogo.apply(
-            lambda row: abs(row['Ore_straordinarie'] - row['Ore_recupero']), axis=1
-        )
+        # Raggruppa per Mese_Anno e somma le colonne
+        riepilogo = df.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']].sum().reset_index()
+        riepilogo["Ore_finali"] = riepilogo["Ore_finali"] / 3600
 
-        # Conversione per leggibilità
-        for col in ['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']:
-            riepilogo[col] = riepilogo[col].apply(lambda x: str(x).split(' ')[-1] if not pd.isna(x) else '')
+        # Funzione per convertire i secondi in formato HH:MM:SS
+        def convert_seconds(seconds):
+    # Verifica se i secondi sono negativi
+        is_negative = seconds < 0
+        seconds = abs(seconds)  # Prendiamo il valore assoluto dei secondi per lavorare con il numero positivo
+    
+    # Calcolare ore
+        hours = int(seconds)  # Otteniamo la parte intera come ore
+    
+    # Calcolare i minuti e secondi dai decimali
+        minutes = int((seconds - hours) * 60)
+        remaining_seconds = int(((seconds - hours) * 60 - minutes) * 60)
+    
+    # Creare la stringa nel formato HH:MM:SS
+        time_str = f"{hours:02}:{minutes:02}:{remaining_seconds:02}"
+    
+    # Aggiungere il segno negativo se i secondi sono negativi
+        if is_negative:
+            time_str = "-" + time_str
+    
+        return time_str
+
+        # Applicare la funzione alla colonna 'Ore_finali_format'
+        riepilogo['Ore_finali_formatted'] = riepilogo['Ore_finali'].apply(convert_seconds)
 
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
