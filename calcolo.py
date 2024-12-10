@@ -85,8 +85,8 @@ def main():
         time_str = f"{hours:02}:{minutes:02}:{remaining_seconds:02}"
     
     # Aggiungere il segno negativo se i secondi sono negativi
-        if is_negative:
-            time_str = "-" + time_str
+            if is_negative:
+                time_str = "-" + time_str
     
         return time_str
 
