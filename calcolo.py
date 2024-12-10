@@ -71,24 +71,24 @@ def main():
         # Funzione per convertire i secondi in formato HH:MM:SS
         def convert_seconds(seconds):
     # Verifica se i secondi sono negativi
-        is_negative = seconds < 0
-        seconds = abs(seconds)  # Prendiamo il valore assoluto dei secondi per lavorare con il numero positivo
+            is_negative = seconds < 0
+            seconds = abs(seconds)  # Prendiamo il valore assoluto dei secondi per lavorare con il numero positivo
     
     # Calcolare ore
-        hours = int(seconds)  # Otteniamo la parte intera come ore
+            hours = int(seconds)  # Otteniamo la parte intera come ore
     
     # Calcolare i minuti e secondi dai decimali
-        minutes = int((seconds - hours) * 60)
-        remaining_seconds = int(((seconds - hours) * 60 - minutes) * 60)
+            minutes = int((seconds - hours) * 60)
+            remaining_seconds = int(((seconds - hours) * 60 - minutes) * 60)
     
     # Creare la stringa nel formato HH:MM:SS
-        time_str = f"{hours:02}:{minutes:02}:{remaining_seconds:02}"
+            time_str = f"{hours:02}:{minutes:02}:{remaining_seconds:02}"
     
     # Aggiungere il segno negativo se i secondi sono negativi
             if is_negative:
                 time_str = "-" + time_str
     
-        return time_str
+            return time_str
 
         # Applicare la funzione alla colonna 'Ore_finali_format'
         riepilogo['Ore_finali_formatted'] = riepilogo['Ore_finali'].apply(convert_seconds)
