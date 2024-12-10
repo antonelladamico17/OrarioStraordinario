@@ -113,7 +113,7 @@ def main():
             for num, nome in mesi_italiani_reverse.items():
                 if mese == nome:
                     mese_num = num
-                break
+                    break
     
             if mese_num:  # Se il mese è trovato
                 return f"{anno}-{mese_num:02d}"
