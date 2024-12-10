@@ -66,6 +66,8 @@ def main():
 
         # Raggruppa per Mese Anno e somma le colonne
         riepilogo = df.groupby('Mese Anno')[['Ore straordinarie', 'Ore recupero', 'Ore finali']].sum().reset_index()
+        riepilogo["Ore straordinarie"] = riepilogo["Ore straordinarie"] / 3600
+        riepilogo["Ore recupero"] = riepilogo["Ore recupero"] / 3600
         riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
 
         # Funzione per convertire i secondi in formato HH:MM:SS
