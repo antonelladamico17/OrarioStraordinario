@@ -46,7 +46,7 @@ def main():
         df[['Ore straordinarie', 'Ore recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)
 
 
-        # Creare la colonna 'Mese_Anno' con il nome del mese in italiano
+        # Creare la colonna 'Mese Anno' con il nome del mese in italiano
         df['Giorno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y')
         mesi_italiani = {
             1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
@@ -64,8 +64,8 @@ def main():
         # Calcolo della colonna Ore_finali
         df['Ore finali'] = df.apply(calcola_ore_finali, axis=1)
 
-        # Raggruppa per Mese_Anno e somma le colonne
-        riepilogo = df.groupby('Mese_Anno')[['Ore straordinarie', 'Ore recupero', 'Ore finali']].sum().reset_index()
+        # Raggruppa per Mese Anno e somma le colonne
+        riepilogo = df.groupby('Mese Anno')[['Ore straordinarie', 'Ore recupero', 'Ore finali']].sum().reset_index()
         riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
 
         # Funzione per convertire i secondi in formato HH:MM:SS
@@ -104,7 +104,7 @@ def main():
         st.download_button(
             label="Scarica Riepilogo",
             data=excel_file,
-            file_name='riepilogo_ore_straordinarie.xlsx',
+            file_name='riepilogo_Ore straordinarie.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
