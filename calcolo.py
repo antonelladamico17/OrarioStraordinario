@@ -43,7 +43,7 @@ def main():
                 return 0, orario_lavorativo_standard - row['Durata']
 
         # Applicare la funzione calcola_ore
-        df[['Ore_straordinarie', 'Ore_recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)
+        df[['Ore straordinarie', 'Ore recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)
 
 
         # Creare la colonna 'Mese_Anno' con il nome del mese in italiano
@@ -52,21 +52,21 @@ def main():
             1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
             7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
         }
-        df['Mese_Anno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.month
-        df['Mese_Anno'] = df['Mese_Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.year.astype(str)
+        df['Mese Anno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.month
+        df['Mese Anno'] = df['Mese Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.year.astype(str)
 
         # Calcolo riepilogo mensile
-        df = df[['Mese_Anno', 'Ore_straordinarie', 'Ore_recupero']]
+        df = df[['Mese Anno', 'Ore straordinarie', 'Ore recupero']]
 
         
         def calcola_ore_finali(row):
-          return row['Ore_straordinarie'] - row['Ore_recupero']
+          return row['Ore straordinarie'] - row['Ore recupero']
         # Calcolo della colonna Ore_finali
-        df['Ore_finali'] = df.apply(calcola_ore_finali, axis=1)
+        df['Ore finali'] = df.apply(calcola_ore_finali, axis=1)
 
         # Raggruppa per Mese_Anno e somma le colonne
-        riepilogo = df.groupby('Mese_Anno')[['Ore_straordinarie', 'Ore_recupero', 'Ore_finali']].sum().reset_index()
-        riepilogo["Ore_finali"] = riepilogo["Ore_finali"] / 3600
+        riepilogo = df.groupby('Mese_Anno')[['Ore straordinarie', 'Ore recupero', 'Ore finali']].sum().reset_index()
+        riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
 
         # Funzione per convertire i secondi in formato HH:MM:SS
         def convert_seconds(seconds):
@@ -91,7 +91,9 @@ def main():
             return time_str
 
         # Applicare la funzione alla colonna 'Ore_finali_format'
-        riepilogo['Ore_finali_formatted'] = riepilogo['Ore_finali'].apply(convert_seconds)
+        riepilogo['Ore straordinarie'] = riepilogo['Ore straordinarie'].apply(convert_seconds)
+        riepilogo['Ore riepilogo'] = riepilogo['Ore riepilogo'].apply(convert_seconds)
+        riepilogo['Ore finali'] = riepilogo['Ore finali'].apply(convert_seconds)
 
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
