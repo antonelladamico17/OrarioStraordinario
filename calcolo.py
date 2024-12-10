@@ -92,7 +92,7 @@ def main():
 
         # Applicare la funzione alla colonna 'Ore_finali_format'
         riepilogo['Ore straordinarie'] = riepilogo['Ore straordinarie'].apply(convert_seconds)
-        riepilogo['Ore riepilogo'] = riepilogo['Ore riepilogo'].apply(convert_seconds)
+        riepilogo['Ore recupero'] = riepilogo['Ore recupero'].apply(convert_seconds)
         riepilogo['Ore finali'] = riepilogo['Ore finali'].apply(convert_seconds)
 
         # Mostra il riepilogo
