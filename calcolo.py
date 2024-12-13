@@ -122,7 +122,7 @@ def main():
             if mese_anno_permesso in riepilogo['Mese Anno'].values:
                 riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore permesso'] = ore_permesso
                 riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso
-            st.session_state.permessi_input = 0.0  # Resetta il valore a 0 dopo averlo registrato
+            ore_permesso = 0.0  # Resetta il valore a 0 dopo averlo registrato
 
         # Calcolo dei cumulativi aggiornati
         cumulative_hours = 0
