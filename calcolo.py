@@ -107,6 +107,39 @@ def main():
 
         riepilogo["Cumulativo Ore"] = cumulative_times
 
+        # Ordine temporale
+        mesi_italiani_reverse = {
+        1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
+        7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
+        }
+
+        # Funzione per convertire 'Mese_Anno' in formato 'YYYY-MM'
+        def converti_mese_anno(mese_anno):
+        # Dividere la stringa in mese e anno
+            mese, anno = mese_anno.split()
+            mese = mese.strip()  # Rimuovere eventuali spazi prima e dopo il mese
+        # Mappa il mese al numero corrispondente
+            mese_num = None
+            for num, nome in mesi_italiani_reverse.items():
+                if mese == nome:
+                    mese_num = num
+                    break
+
+            if mese_num:  # Se il mese è trovato
+                return f"{anno}-{mese_num:02d}"
+            else:
+                return None  # Restituire None se il mese non è trovato
+        # Applicare la funzione alla colonna 'Mese_Anno'
+        riepilogo['Anno_Mese'] = riepilogo['Mese Anno'].apply(converti_mese_anno)
+        # Rimuovere righe con valori None (se ci sono problemi con il formato)
+        riepilogo = riepilogo.dropna(subset=['Anno_Mese'])
+        # Convertire la colonna 'Anno_Mese' in un tipo di dato datetime
+        riepilogo['Anno_Mese'] = pd.to_datetime(riepilogo['Anno_Mese'], format='%Y-%m')
+        # Ordinare il DataFrame per la colonna 'Anno_Mese'
+        riepilogo = riepilogo.sort_values(by='Anno_Mese')
+        riepilogo = riepilogo.drop('Anno_Mese', axis=1)
+
+
         # Funzione per convertire i secondi in formato HH:MM:SS
         def convert_seconds(hours):
             total_seconds = int(hours * 3600)
