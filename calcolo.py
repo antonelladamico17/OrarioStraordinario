@@ -107,6 +107,8 @@ def main():
         riepilogo = riepilogo.drop('Anno_Mese', axis=1)
 
         # Aggiunta input per permessi
+        if "permessi_input" not in st.session_state:
+        st.session_state["permessi_input"] = 0.0
         st.write("Inserisci i permessi mensili:")
         col1, col2, col3 = st.columns(3)
         selected_month = col1.selectbox("Seleziona il mese", list(mesi_italiani.values()))
@@ -122,7 +124,7 @@ def main():
             if mese_anno_permesso in riepilogo['Mese Anno'].values:
                 riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore permesso'] = ore_permesso
                 riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso
-            ore_permesso = 0.0  # Resetta il valore a 0 dopo averlo registrato
+            st.session_state.permessi_input = 0.0  # Resetta il valore a 0 dopo averlo registrato
 
         # Calcolo dei cumulativi aggiornati
         cumulative_hours = 0
@@ -150,6 +152,7 @@ def main():
         riepilogo['Ore finali'] = riepilogo['Ore finali'].apply(convert_seconds)
         riepilogo['Cumulativo Ore'] = riepilogo['Cumulativo Ore'].apply(convert_seconds)
         riepilogo['Ore permesso'] = riepilogo['Ore permesso'].apply(convert_seconds)
+
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
         st.dataframe(riepilogo)
