@@ -11,6 +11,7 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
+# Funzione principale della app
 def main():
     st.title("Analisi Ore Straordinarie")
 
@@ -54,7 +55,6 @@ def main():
         # Applicare la funzione calcola_ore
         df[['Ore straordinarie', 'Ore recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)
 
-
         # Creare la colonna 'Mese Anno' con il nome del mese in italiano
         df['Giorno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y')
         mesi_italiani = {
@@ -67,9 +67,8 @@ def main():
         # Rimuovi la colonna temporanea
         df = df[['Mese Anno', 'Ore straordinarie', 'Ore recupero']]
 
-
         def calcola_ore_finali(row):
-          return row['Ore straordinarie'] - row['Ore recupero']
+            return row['Ore straordinarie'] - row['Ore recupero']
         # Calcolo della colonna Ore_finali
         df['Ore finali'] = df.apply(calcola_ore_finali, axis=1)
 
@@ -79,18 +78,16 @@ def main():
         riepilogo["Ore recupero"] = riepilogo["Ore recupero"] / 3600
         riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
 
-# Ordine temporale
+        # Ordine temporale
         mesi_italiani_reverse = {
-        1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
-        7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
+            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
+            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
         }
 
         # Funzione per convertire 'Mese_Anno' in formato 'YYYY-MM'
         def converti_mese_anno(mese_anno):
-        # Dividere la stringa in mese e anno
             mese, anno = mese_anno.split()
             mese = mese.strip()  # Rimuovere eventuali spazi prima e dopo il mese
-        # Mappa il mese al numero corrispondente
             mese_num = None
             for num, nome in mesi_italiani_reverse.items():
                 if mese == nome:
@@ -101,55 +98,57 @@ def main():
                 return f"{anno}-{mese_num:02d}"
             else:
                 return None  # Restituire None se il mese non è trovato
+
         # Applicare la funzione alla colonna 'Mese_Anno'
         riepilogo['Anno_Mese'] = riepilogo['Mese Anno'].apply(converti_mese_anno)
-        # Rimuovere righe con valori None (se ci sono problemi con il formato)
         riepilogo = riepilogo.dropna(subset=['Anno_Mese'])
-        # Convertire la colonna 'Anno_Mese' in un tipo di dato datetime
         riepilogo['Anno_Mese'] = pd.to_datetime(riepilogo['Anno_Mese'], format='%Y-%m')
-        # Ordinare il DataFrame per la colonna 'Anno_Mese'
         riepilogo = riepilogo.sort_values(by='Anno_Mese')
         riepilogo = riepilogo.drop('Anno_Mese', axis=1)
 
-        # Calcolo dei cumulativi
-        cumulative_seconds = 0
-        cumulative_times = []
-        for final_time in riepilogo["Ore finali"]:
-            cumulative_seconds += final_time
-            cumulative_times.append(cumulative_seconds)
+        # Aggiunta input per permessi
+        st.write("Inserisci i permessi mensili:")
+        col1, col2, col3 = st.columns(3)
+        selected_month = col1.selectbox("Seleziona il mese", list(mesi_italiani.values()))
+        selected_year = col2.number_input("Inserisci l'anno", min_value=2000, max_value=2100, step=1, value=2023)
+        ore_permesso = col3.number_input("Ore di permesso (in ore)", min_value=0.0, step=0.5, value=0.0)
 
-        # Aggiunta della colonna cumulativa al DataFrame
+        mese_anno_permesso = f"{selected_month} {int(selected_year)}"
+
+        # Aggiunta colonna "Ore permesso"
+        riepilogo['Ore permesso'] = 0.0
+
+        if ore_permesso > 0:
+            if mese_anno_permesso in riepilogo['Mese Anno'].values:
+                riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore permesso'] = ore_permesso
+                riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso
+
+        # Calcolo dei cumulativi aggiornati
+        cumulative_hours = 0
+        cumulative_times = []
+        for final_hours in riepilogo["Ore finali"]:
+            cumulative_hours += final_hours
+            cumulative_times.append(cumulative_hours)
+
         riepilogo["Cumulativo Ore"] = cumulative_times
 
         # Funzione per convertire i secondi in formato HH:MM:SS
-        def convert_seconds(seconds):
-        # Verifica se i secondi sono negativi
-            is_negative = seconds < 0
-            seconds = abs(seconds)  # Prendiamo il valore assoluto dei secondi per lavorare con il numero positivo
+        def convert_seconds(hours):
+            total_seconds = int(hours * 3600)
+            is_negative = total_seconds < 0
+            total_seconds = abs(total_seconds)
+            hh = total_seconds // 3600
+            mm = (total_seconds % 3600) // 60
+            ss = total_seconds % 60
+            time_str = f"{hh:02}:{mm:02}:{ss:02}"
+            return f"-{time_str}" if is_negative else time_str
 
-        # Calcolare ore
-            hours = int(seconds)  # Otteniamo la parte intera come ore
-
-      # Calcolare i minuti e secondi dai decimali
-            minutes = int((seconds - hours) * 60)
-            remaining_seconds = int(((seconds - hours) * 60 - minutes) * 60)
-
-    # Creare la stringa nel formato HH:MM:SS
-            time_str = f"{hours:02}:{minutes:02}:{remaining_seconds:02}"
-
-    # Aggiungere il segno negativo se i secondi sono negativi
-            if is_negative:
-                time_str = "-" + time_str
-
-            return time_str
-
-        # Applicare la funzione alla colonna 'Ore_finali_format'
+        # Applicare la conversione
         riepilogo['Ore straordinarie'] = riepilogo['Ore straordinarie'].apply(convert_seconds)
         riepilogo['Ore recupero'] = riepilogo['Ore recupero'].apply(convert_seconds)
         riepilogo['Ore finali'] = riepilogo['Ore finali'].apply(convert_seconds)
         riepilogo['Cumulativo Ore'] = riepilogo['Cumulativo Ore'].apply(convert_seconds)
-
-
+        riepilogo['Ore permesso'] = riepilogo['Ore permesso'].apply(convert_seconds)
 
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
@@ -160,17 +159,17 @@ def main():
         st.download_button(
             label="Scarica Riepilogo",
             data=excel_file,
-            file_name='riepilogo_Ore straordinarie.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            file_name='riepilogo_Ore_straordinarie.xlsx'
         )
 
-def create_excel_file(df):
-    # Crea un file Excel in memoria
+# Funzione per creare il file Excel
+def create_excel_file(data):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Riepilogo')
-    output.seek(0)
-    return output.read()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    data.to_excel(writer, index=False, sheet_name='Riepilogo')
+    writer.save()
+    processed_data = output.getvalue()
+    return processed_data
 
 if __name__ == "__main__":
     main()
