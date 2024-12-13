@@ -78,42 +78,14 @@ def main():
         riepilogo["Ore recupero"] = riepilogo["Ore recupero"] / 3600
         riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
 
-        # Ordine temporale
-        mesi_italiani_reverse = {
-            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
-            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
-        }
-
-        # Funzione per convertire 'Mese_Anno' in formato 'YYYY-MM'
-        def converti_mese_anno(mese_anno):
-            mese, anno = mese_anno.split()
-            mese = mese.strip()  # Rimuovere eventuali spazi prima e dopo il mese
-            mese_num = None
-            for num, nome in mesi_italiani_reverse.items():
-                if mese == nome:
-                    mese_num = num
-                    break
-
-            if mese_num:  # Se il mese è trovato
-                return f"{anno}-{mese_num:02d}"
-            else:
-                return None  # Restituire None se il mese non è trovato
-
-        # Applicare la funzione alla colonna 'Mese_Anno'
-        riepilogo['Anno_Mese'] = riepilogo['Mese Anno'].apply(converti_mese_anno)
-        riepilogo = riepilogo.dropna(subset=['Anno_Mese'])
-        riepilogo['Anno_Mese'] = pd.to_datetime(riepilogo['Anno_Mese'], format='%Y-%m')
-        riepilogo = riepilogo.sort_values(by='Anno_Mese')
-        riepilogo = riepilogo.drop('Anno_Mese', axis=1)
-
         # Aggiunta input per permessi
         if "permessi_input" not in st.session_state:
-            st.session_state["permessi_input"] = 0.0
+          st.session_state["permessi_input"] = 0.0
         st.write("Inserisci i permessi mensili:")
         col1, col2, col3 = st.columns(3)
         selected_month = col1.selectbox("Seleziona il mese", list(mesi_italiani.values()))
         selected_year = col2.number_input("Inserisci l'anno", min_value=2000, max_value=2100, step=1, value=2023)
-        ore_permesso = col3.number_input("Ore di permesso (in ore)", min_value=0.0, step=0.5, value=0.0, key="permessi_input")
+        ore_permesso = col3.number_input("Ore di permesso (in ore)", min_value=0.0, step=0.5, value=st.session_state["permessi_input"], key="permessi_input")
 
         mese_anno_permesso = f"{selected_month} {int(selected_year)}"
 
@@ -166,6 +138,7 @@ def main():
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
+# Funzione per creare il file Excel
 def create_excel_file(df):
     # Crea un file Excel in memoria
     output = BytesIO()
