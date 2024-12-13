@@ -11,10 +11,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-import streamlit as st
-import pandas as pd
-from io import BytesIO
-
 # Funzione principale della app
 def main():
     st.title("Analisi Ore Straordinarie")
@@ -115,7 +111,7 @@ def main():
         col1, col2, col3 = st.columns(3)
         selected_month = col1.selectbox("Seleziona il mese", list(mesi_italiani.values()))
         selected_year = col2.number_input("Inserisci l'anno", min_value=2000, max_value=2100, step=1, value=2023)
-        ore_permesso = col3.number_input("Ore di permesso (in ore)", min_value=0.0, step=0.5, value=0.0)
+        ore_permesso = col3.number_input("Ore di permesso (in ore)", min_value=0.0, step=0.5, value=0.0, key="permessi_input")
 
         mese_anno_permesso = f"{selected_month} {int(selected_year)}"
 
@@ -126,6 +122,7 @@ def main():
             if mese_anno_permesso in riepilogo['Mese Anno'].values:
                 riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore permesso'] = ore_permesso
                 riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso
+            st.session_state.permessi_input = 0.0  # Resetta il valore a 0 dopo averlo registrato
 
         # Calcolo dei cumulativi aggiornati
         cumulative_hours = 0
@@ -153,7 +150,6 @@ def main():
         riepilogo['Ore finali'] = riepilogo['Ore finali'].apply(convert_seconds)
         riepilogo['Cumulativo Ore'] = riepilogo['Cumulativo Ore'].apply(convert_seconds)
         riepilogo['Ore permesso'] = riepilogo['Ore permesso'].apply(convert_seconds)
-
         # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
         st.dataframe(riepilogo)
