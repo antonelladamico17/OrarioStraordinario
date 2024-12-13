@@ -159,17 +159,17 @@ def main():
         st.download_button(
             label="Scarica Riepilogo",
             data=excel_file,
-            file_name='riepilogo_Ore_straordinarie.xlsx'
+            file_name='riepilogo_Ore straordinarie.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
-# Funzione per creare il file Excel
-def create_excel_file(data):
+def create_excel_file(df):
+    # Crea un file Excel in memoria
     output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    data.to_excel(writer, index=False, sheet_name='Riepilogo')
-    writer.save()
-    processed_data = output.getvalue()
-    return processed_data
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Riepilogo')
+    output.seek(0)
+    return output.read()
 
 if __name__ == "__main__":
     main()
