@@ -108,7 +108,7 @@ def main():
 
         # Aggiunta input per permessi
         if "permessi_input" not in st.session_state:
-        st.session_state["permessi_input"] = 0.0
+            st.session_state["permessi_input"] = 0.0
         st.write("Inserisci i permessi mensili:")
         col1, col2, col3 = st.columns(3)
         selected_month = col1.selectbox("Seleziona il mese", list(mesi_italiani.values()))
