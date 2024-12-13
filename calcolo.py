@@ -1,174 +1,153 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyOYA0Ajw4yHoA3w9mNoPipO"
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "cells": [
-    {
-      "cell_type": "code",
-      "execution_count": null,
-      "metadata": {
-        "id": "Ks6JvM3tOtFh"
-      },
-      "outputs": [],
-      "source": [
-        "import streamlit as st\n",
-        "import pandas as pd\n",
-        "from io import BytesIO\n",
-        "\n",
-        "# Funzione principale della app\n",
-        "def main():\n",
-        "    st.title(\"Analisi Ore Straordinarie\")\n",
-        "\n",
-        "    # Carica il file Excel\n",
-        "    uploaded_file = st.file_uploader(\"Carica il tuo file Excel\", type=\"xlsx\")\n",
-        "\n",
-        "    if uploaded_file is not None:\n",
-        "        df = pd.read_excel(uploaded_file)\n",
-        "\n",
-        "        # Gestione delle intestazioni\n",
-        "        df = df.iloc[1:]\n",
-        "        df.columns = df.iloc[0]\n",
-        "        df = df.iloc[1:]\n",
-        "        df.reset_index(drop=True, inplace=True)\n",
-        "\n",
-        "        # Conversione delle date e orari\n",
-        "        df['Entrata'] = pd.to_datetime(df['Data'] + ' ' + df['Orario entrata'], format='%d/%m/%Y %H:%M:%S', errors='coerce')\n",
-        "        df['Uscita'] = pd.to_datetime(df['Data'] + ' ' + df['Orario uscita'], format='%d/%m/%Y %H:%M:%S', errors='coerce')\n",
-        "\n",
-        "        # Calcolo della durata\n",
-        "        df['Durata'] = (df['Uscita'] - df['Entrata']).dt.total_seconds()  # Totale in secondi\n",
-        "        df.loc[df['Causale'] == 'Orario Ordinario', 'Durata'] = 0\n",
-        "\n",
-        "        # Estrarre il giorno per il raggruppamento\n",
-        "        df['Giorno'] = df['Entrata'].dt.strftime('%d/%m/%Y')\n",
-        "\n",
-        "        # Raggruppare per giorno e sommare i secondi\n",
-        "        df = df.groupby('Giorno')['Durata'].sum().reset_index()\n",
-        "\n",
-        "        # Orario lavorativo standard\n",
-        "        orario_lavorativo_standard = pd.to_timedelta('07:12:00').total_seconds()\n",
-        "\n",
-        "        # Calcolo straordinari e recupero\n",
-        "        def calcola_ore(row):\n",
-        "            differenza = row['Durata'] - orario_lavorativo_standard\n",
-        "            if differenza >= 0:  # Straordinari\n",
-        "                return differenza, 0\n",
-        "            else:  # Recupero\n",
-        "                return 0, orario_lavorativo_standard - row['Durata']\n",
-        "\n",
-        "        # Applicare la funzione calcola_ore\n",
-        "        df[['Ore straordinarie', 'Ore recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)\n",
-        "\n",
-        "        # Creare la colonna 'Mese Anno' con il nome del mese in italiano\n",
-        "        df['Giorno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y')\n",
-        "        mesi_italiani = {\n",
-        "            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',\n",
-        "            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'\n",
-        "        }\n",
-        "        df['Mese Anno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.month\n",
-        "        df['Mese Anno'] = df['Mese Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.year.astype(str)\n",
-        "\n",
-        "        # Rimuovi la colonna temporanea\n",
-        "        df = df[['Mese Anno', 'Ore straordinarie', 'Ore recupero']]\n",
-        "\n",
-        "        def calcola_ore_finali(row):\n",
-        "            return row['Ore straordinarie'] - row['Ore recupero']\n",
-        "        # Calcolo della colonna Ore_finali\n",
-        "        df['Ore finali'] = df.apply(calcola_ore_finali, axis=1)\n",
-        "\n",
-        "        # Raggruppa per Mese Anno e somma le colonne\n",
-        "        riepilogo = df.groupby('Mese Anno')[['Ore straordinarie', 'Ore recupero', 'Ore finali']].sum().reset_index()\n",
-        "        riepilogo[\"Ore straordinarie\"] = riepilogo[\"Ore straordinarie\"] / 3600\n",
-        "        riepilogo[\"Ore recupero\"] = riepilogo[\"Ore recupero\"] / 3600\n",
-        "        riepilogo[\"Ore finali\"] = riepilogo[\"Ore finali\"] / 3600\n",
-        "\n",
-        "        # Ordine temporale\n",
-        "        mesi_italiani_reverse = {\n",
-        "            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',\n",
-        "            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'\n",
-        "        }\n",
-        "\n",
-        "        # Funzione per convertire 'Mese_Anno' in formato 'YYYY-MM'\n",
-        "        def converti_mese_anno(mese_anno):\n",
-        "            mese, anno = mese_anno.split()\n",
-        "            mese = mese.strip()  # Rimuovere eventuali spazi prima e dopo il mese\n",
-        "            mese_num = None\n",
-        "            for num, nome in mesi_italiani_reverse.items():\n",
-        "                if mese == nome:\n",
-        "                    mese_num = num\n",
-        "                    break\n",
-        "\n",
-        "            if mese_num:  # Se il mese è trovato\n",
-        "                return f\"{anno}-{mese_num:02d}\"\n",
-        "            else:\n",
-        "                return None  # Restituire None se il mese non è trovato\n",
-        "\n",
-        "        # Applicare la funzione alla colonna 'Mese_Anno'\n",
-        "        riepilogo['Anno_Mese'] = riepilogo['Mese Anno'].apply(converti_mese_anno)\n",
-        "        riepilogo = riepilogo.dropna(subset=['Anno_Mese'])\n",
-        "        riepilogo['Anno_Mese'] = pd.to_datetime(riepilogo['Anno_Mese'], format='%Y-%m')\n",
-        "        riepilogo = riepilogo.sort_values(by='Anno_Mese')\n",
-        "        riepilogo = riepilogo.drop('Anno_Mese', axis=1)\n",
-        "\n",
-        "        # Aggiunta input per permessi\n",
-        "        st.write(\"Inserisci i permessi mensili:\")\n",
-        "        col1, col2, col3 = st.columns(3)\n",
-        "        selected_month = col1.selectbox(\"Seleziona il mese\", list(mesi_italiani.values()))\n",
-        "        selected_year = col2.number_input(\"Inserisci l'anno\", min_value=2000, max_value=2100, step=1, value=2023)\n",
-        "        ore_permesso = col3.number_input(\"Ore di permesso (in ore)\", min_value=0.0, step=0.5, value=0.0)\n",
-        "\n",
-        "        if ore_permesso > 0:\n",
-        "            mese_anno_permesso = f\"{selected_month} {int(selected_year)}\"\n",
-        "\n",
-        "            # Sottrazione del permesso dal cumulativo\n",
-        "            if mese_anno_permesso in riepilogo['Mese Anno'].values:\n",
-        "                riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso\n",
-        "\n",
-        "        # Calcolo dei cumulativi aggiornati\n",
-        "        cumulative_hours = 0\n",
-        "        cumulative_times = []\n",
-        "        for final_hours in riepilogo[\"Ore finali\"]:\n",
-        "            cumulative_hours += final_hours\n",
-        "            cumulative_times.append(cumulative_hours)\n",
-        "\n",
-        "        riepilogo[\"Cumulativo Ore\"] = cumulative_times\n",
-        "\n",
-        "        # Mostra il riepilogo\n",
-        "        st.write(\"Riepilogo delle Ore Straordinarie:\")\n",
-        "        st.dataframe(riepilogo)\n",
-        "\n",
-        "        # Opzione per scaricare il riepilogo in formato Excel\n",
-        "        excel_file = create_excel_file(riepilogo)\n",
-        "        st.download_button(\n",
-        "            label=\"Scarica Riepilogo\",\n",
-        "            data=excel_file,\n",
-        "            file_name='riepilogo_Ore straordinarie.xlsx',\n",
-        "            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'\n",
-        "        )\n",
-        "\n",
-        "def create_excel_file(df):\n",
-        "    output = BytesIO()\n",
-        "    with pd.ExcelWriter(output, engine='openpyxl') as writer:\n",
-        "        df.to_excel(writer, index=False, sheet_name='Riepilogo')\n",
-        "    output.seek(0)\n",
-        "    return output.read()\n",
-        "\n",
-        "if __name__ == \"__main__\":\n",
-        "    main()\n",
-        "\n"
-      ]
-    }
-  ]
-}
+# -*- coding: utf-8 -*-
+"""calcolo.ipynb
+
+Automatically generated by Colab.
+
+Original file is located at
+    https://colab.research.google.com/drive/1r_rCWBQ7H3rzKQiVSI8g_ZeqYuRCXQeJ
+"""
+
+import streamlit as st
+import pandas as pd
+from io import BytesIO
+
+# Funzione principale della app
+def main():
+    st.title("Analisi Ore Straordinarie")
+
+    # Carica il file Excel
+    uploaded_file = st.file_uploader("Carica il tuo file Excel", type="xlsx")
+
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
+
+        # Gestione delle intestazioni
+        df = df.iloc[1:]
+        df.columns = df.iloc[0]
+        df = df.iloc[1:]
+        df.reset_index(drop=True, inplace=True)
+
+        # Conversione delle date e orari
+        df['Entrata'] = pd.to_datetime(df['Data'] + ' ' + df['Orario entrata'], format='%d/%m/%Y %H:%M:%S', errors='coerce')
+        df['Uscita'] = pd.to_datetime(df['Data'] + ' ' + df['Orario uscita'], format='%d/%m/%Y %H:%M:%S', errors='coerce')
+
+        # Calcolo della durata
+        df['Durata'] = (df['Uscita'] - df['Entrata']).dt.total_seconds()  # Totale in secondi
+        df.loc[df['Causale'] == 'Orario Ordinario', 'Durata'] = 0
+
+        # Estrarre il giorno per il raggruppamento
+        df['Giorno'] = df['Entrata'].dt.strftime('%d/%m/%Y')
+
+        # Raggruppare per giorno e sommare i secondi
+        df = df.groupby('Giorno')['Durata'].sum().reset_index()
+
+        # Orario lavorativo standard
+        orario_lavorativo_standard = pd.to_timedelta('07:12:00').total_seconds()
+
+        # Calcolo straordinari e recupero
+        def calcola_ore(row):
+            differenza = row['Durata'] - orario_lavorativo_standard
+            if differenza >= 0:  # Straordinari
+                return differenza, 0
+            else:  # Recupero
+                return 0, orario_lavorativo_standard - row['Durata']
+
+        # Applicare la funzione calcola_ore
+        df[['Ore straordinarie', 'Ore recupero']] = df.apply(lambda row: pd.Series(calcola_ore(row)), axis=1)
+
+        # Creare la colonna 'Mese Anno' con il nome del mese in italiano
+        df['Giorno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y')
+        mesi_italiani = {
+            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
+            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
+        }
+        df['Mese Anno'] = pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.month
+        df['Mese Anno'] = df['Mese Anno'].map(mesi_italiani) + ' ' + pd.to_datetime(df['Giorno'], format='%d/%m/%Y').dt.year.astype(str)
+
+        # Rimuovi la colonna temporanea
+        df = df[['Mese Anno', 'Ore straordinarie', 'Ore recupero']]
+
+        def calcola_ore_finali(row):
+            return row['Ore straordinarie'] - row['Ore recupero']
+        # Calcolo della colonna Ore_finali
+        df['Ore finali'] = df.apply(calcola_ore_finali, axis=1)
+
+        # Raggruppa per Mese Anno e somma le colonne
+        riepilogo = df.groupby('Mese Anno')[['Ore straordinarie', 'Ore recupero', 'Ore finali']].sum().reset_index()
+        riepilogo["Ore straordinarie"] = riepilogo["Ore straordinarie"] / 3600
+        riepilogo["Ore recupero"] = riepilogo["Ore recupero"] / 3600
+        riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
+
+        # Ordine temporale
+        mesi_italiani_reverse = {
+            1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
+            7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
+        }
+
+        # Funzione per convertire 'Mese_Anno' in formato 'YYYY-MM'
+        def converti_mese_anno(mese_anno):
+            mese, anno = mese_anno.split()
+            mese = mese.strip()  # Rimuovere eventuali spazi prima e dopo il mese
+            mese_num = None
+            for num, nome in mesi_italiani_reverse.items():
+                if mese == nome:
+                    mese_num = num
+                    break
+
+            if mese_num:  # Se il mese è trovato
+                return f"{anno}-{mese_num:02d}"
+            else:
+                return None  # Restituire None se il mese non è trovato
+
+        # Applicare la funzione alla colonna 'Mese_Anno'
+        riepilogo['Anno_Mese'] = riepilogo['Mese Anno'].apply(converti_mese_anno)
+        riepilogo = riepilogo.dropna(subset=['Anno_Mese'])
+        riepilogo['Anno_Mese'] = pd.to_datetime(riepilogo['Anno_Mese'], format='%Y-%m')
+        riepilogo = riepilogo.sort_values(by='Anno_Mese')
+        riepilogo = riepilogo.drop('Anno_Mese', axis=1)
+
+        # Aggiunta input per permessi
+        st.write("Inserisci i permessi mensili:")
+        col1, col2, col3 = st.columns(3)
+        selected_month = col1.selectbox("Seleziona il mese", list(mesi_italiani.values()))
+        selected_year = col2.number_input("Inserisci l'anno", min_value=2000, max_value=2100, step=1, value=2023)
+        ore_permesso = col3.number_input("Ore di permesso (in ore)", min_value=0.0, step=0.5, value=0.0)
+
+        if ore_permesso > 0:
+            mese_anno_permesso = f"{selected_month} {int(selected_year)}"
+
+            # Sottrazione del permesso dal cumulativo
+            if mese_anno_permesso in riepilogo['Mese Anno'].values:
+                riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso
+
+        # Calcolo dei cumulativi aggiornati
+        cumulative_hours = 0
+        cumulative_times = []
+        for final_hours in riepilogo["Ore finali"]:
+            cumulative_hours += final_hours
+            cumulative_times.append(cumulative_hours)
+
+        riepilogo["Cumulativo Ore"] = cumulative_times
+
+        # Mostra il riepilogo
+        st.write("Riepilogo delle Ore Straordinarie:")
+        st.dataframe(riepilogo)
+
+        # Opzione per scaricare il riepilogo in formato Excel
+        excel_file = create_excel_file(riepilogo)
+        st.download_button(
+            label="Scarica Riepilogo",
+            data=excel_file,
+            file_name='riepilogo_Ore straordinarie.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+def create_excel_file(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Riepilogo')
+    output.seek(0)
+    return output.read()
+
+if __name__ == "__main__":
+    main()
