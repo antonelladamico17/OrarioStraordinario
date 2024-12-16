@@ -7,6 +7,10 @@ Original file is located at
     https://colab.research.google.com/drive/1r_rCWBQ7H3rzKQiVSI8g_ZeqYuRCXQeJ
 """
 
+import pandas as pd
+import streamlit as st
+from io import BytesIO
+
 # Dizionario per memorizzare i permessi per ogni mese-anno
 permessi_mensili = {}
 
@@ -128,10 +132,10 @@ def main():
 
 def create_excel_file(df):
 # Crea un file Excel in memoria
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Riepilogo')
-        output.seek(0)
+  output = BytesIO()
+  with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    df.to_excel(writer, index=False, sheet_name='Riepilogo')
+    output.seek(0)
     return output.read()
 
 if __name__ == "__main__":
