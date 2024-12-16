@@ -128,11 +128,11 @@ def main():
 
 def create_excel_file(df):
 # Crea un file Excel in memoria
-output = BytesIO()
-with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    df.to_excel(writer, index=False, sheet_name='Riepilogo')
-output.seek(0)
-return output.read()
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Riepilogo')
+        output.seek(0)
+    return output.read()
 
 if __name__ == "__main__":
     main()
