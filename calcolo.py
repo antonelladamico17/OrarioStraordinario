@@ -11,13 +11,13 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
-# Dizionario per memorizzare i permessi per ogni mese-anno
-permessi_mensili = {}
-
 # Funzione principale della app
 def main():
-    global permessi_mensili  # Usare il dizionario globale
     st.title("Analisi Ore Straordinarie")
+
+    # Inizializza il dizionario dei permessi in session_state
+    if 'permessi_mensili' not in st.session_state:
+        st.session_state['permessi_mensili'] = {}
 
     # Carica il file Excel
     uploaded_file = st.file_uploader("Carica il tuo file Excel", type="xlsx")
