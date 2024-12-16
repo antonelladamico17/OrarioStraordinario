@@ -15,10 +15,6 @@ from io import BytesIO
 def main():
     st.title("Analisi Ore Straordinarie")
 
-    # Inizializza il dizionario dei permessi in session_state
-    if 'permessi_mensili' not in st.session_state:
-        st.session_state['permessi_mensili'] = {}
-
     # Carica il file Excel
     uploaded_file = st.file_uploader("Carica il tuo file Excel", type="xlsx")
 
@@ -82,7 +78,7 @@ def main():
         riepilogo["Ore recupero"] = riepilogo["Ore recupero"] / 3600
         riepilogo["Ore finali"] = riepilogo["Ore finali"] / 3600
 
- # Ordine temporale
+        # Ordine temporale
         mesi_italiani_reverse = {
             1: 'Gennaio', 2: 'Febbraio', 3: 'Marzo', 4: 'Aprile', 5: 'Maggio', 6: 'Giugno',
             7: 'Luglio', 8: 'Agosto', 9: 'Settembre', 10: 'Ottobre', 11: 'Novembre', 12: 'Dicembre'
@@ -119,13 +115,13 @@ def main():
 
         mese_anno_permesso = f"{selected_month} {int(selected_year)}"
 
-        # Aggiorna il dizionario con le ore di permesso
-        if ore_permesso > 0:
-            permessi_mensili[mese_anno_permesso] = ore_permesso
+        # Aggiunta colonna "Ore permesso"
+        riepilogo['Ore permesso'] = 0.0
 
-        # Aggiungi una colonna 'Ore permesso' al riepilogo
-        riepilogo['Ore permesso'] = riepilogo['Mese Anno'].map(permessi_mensili).fillna(0.0)
-        riepilogo['Ore finali'] -= riepilogo['Ore permesso']
+        if ore_permesso > 0:
+            if mese_anno_permesso in riepilogo['Mese Anno'].values:
+                riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore permesso'] = ore_permesso
+                riepilogo.loc[riepilogo['Mese Anno'] == mese_anno_permesso, 'Ore finali'] -= ore_permesso
 
         # Calcolo dei cumulativi aggiornati
         cumulative_hours = 0
@@ -154,15 +150,24 @@ def main():
         riepilogo['Cumulativo Ore'] = riepilogo['Cumulativo Ore'].apply(convert_seconds)
         riepilogo['Ore permesso'] = riepilogo['Ore permesso'].apply(convert_seconds)
 
-        # Mostra il riepilogo
+       # Mostra il riepilogo
         st.write("Riepilogo delle Ore Straordinarie:")
         st.dataframe(riepilogo)
 
+        # Opzione per scaricare il riepilogo in formato Excel
+        excel_file = create_excel_file(riepilogo)
+        st.download_button(
+            label="Scarica Riepilogo",
+            data=excel_file,
+            file_name='riepilogo_Ore straordinarie.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
 def create_excel_file(df):
-# Crea un file Excel in memoria
-  output = BytesIO()
-  with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    df.to_excel(writer, index=False, sheet_name='Riepilogo')
+    # Crea un file Excel in memoria
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Riepilogo')
     output.seek(0)
     return output.read()
 
